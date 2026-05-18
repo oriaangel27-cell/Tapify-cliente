@@ -7,7 +7,7 @@ exports.handler = async (event) => {
   try {
     const { messages, menu } = JSON.parse(event.body);
     const payload = JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 400,
       system: `Eres Pepe, camarero simpático de un restaurante español. Tono natural, español de España. Menú: ${JSON.stringify(menu)}. Recomienda con entusiasmo, informa alérgenos, haz upselling. Respuestas cortas.`,
       messages
