@@ -28,7 +28,7 @@ exports.handler = async (event) => {
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
           const parsed = JSON.parse(data);
-          resolve(parsed.content?.[0]?.text || 'Perdona, ¿puedes repetirlo?');
+          resolve(parsed.content?.[0]?.text || JSON.stringify(parsed));
         });
       });
       req.on('error', reject);
