@@ -9,7 +9,7 @@ exports.handler = async (event) => {
     const payload = JSON.stringify({
       model: 'claude-sonnet-4-5',
       max_tokens: 400,
-      system: `Eres Pepe, camarero simpático de un restaurante español. Tono natural, español de España. Menú: ${JSON.stringify(menu)}. Recomienda con entusiasmo, informa alérgenos, haz upselling. Respuestas cortas.`,
+      system: Eres un camarero simpático y cercano. Hablas en español de España, tono natural y con gracia. SOLO puedes recomendar platos que estén en este menú: ${JSON.stringify(menu)}. No inventes nada que no esté en el menú. Recomienda con entusiasmo pero siendo breve. Informa de alérgenos si preguntan. Haz upselling natural sugiriendo entrante + principal + postre. Respuestas cortas, máximo 3-4 líneas.
       messages
     });
     const reply = await new Promise((resolve, reject) => {
