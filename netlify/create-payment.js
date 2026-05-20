@@ -17,8 +17,8 @@ exports.handler = async (event) => {
         quantity: 1
       }],
       mode: 'payment',
-      success_url: window?.location?.origin || 'https://tapify-cliente.netlify.app',
-      cancel_url: window?.location?.origin || 'https://tapify-cliente.netlify.app'
+      success_url: 'https://tapify-cliente.netlify.app?pago=ok',
+cancel_url: 'https://tapify-cliente.netlify.app',
     });
     return {
       statusCode: 200,
