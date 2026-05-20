@@ -92,6 +92,7 @@
     <div class="tabs">
       <button class="tab active" onclick="switchTab('chat',this)"><i class="ti ti-robot" style="margin-right:5px;font-size:13px;"></i>Camarero IA</button>
       <button class="tab" onclick="switchTab('carta',this)"><i class="ti ti-menu-2" style="margin-right:5px;font-size:13px;"></i>Carta</button>
+      <button class="tab" onclick="switchTab('cuenta',this)"><i class="ti ti-credit-card" style="margin-right:5px;font-size:13px;"></i>Cuenta</button>
     </div>
   </div>
 
@@ -165,6 +166,24 @@
     </div>
   </div>
 
+  <div id="tab-cuenta" class="carta-wrap hidden" style="padding:1.5rem;">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600;color:#0f0f14;margin-bottom:6px;">Tu cuenta</div>
+      <div style="font-size:13px;color:#888;" id="cuenta-mesa">Mesa 1</div>
+    </div>
+    <div id="cuenta-items" style="background:white;border-radius:16px;padding:1rem;margin-bottom:1rem;border:0.5px solid #e8e4dc;">
+      <div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">No hay pedidos todavía</div>
+    </div>
+    <div style="background:white;border-radius:16px;padding:1rem;margin-bottom:1.5rem;border:0.5px solid #e8e4dc;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:15px;font-weight:500;color:#0f0f14;">Total</span>
+      <span style="font-family:'Playfair Display',serif;font-size:22px;color:#c9973a;font-weight:600;" id="cuenta-total">0.00€</span>
+    </div>
+    <button onclick="pagarCuenta()" style="width:100%;background:#0f0f14;color:white;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;" id="btn-pagar">
+      <i class="ti ti-credit-card" style="font-size:18px;"></i>Pagar con tarjeta
+    </button>
+    <p style="text-align:center;font-size:12px;color:#aaa;margin-top:10px;">Pago seguro procesado por Stripe</p>
+  </div>
+
   <div id="pedido-bar" class="pedido-bar hidden">
     <div class="pedido-inner" onclick="verPedido()">
       <div class="pedido-left">
@@ -198,6 +217,8 @@ function switchTab(tab,el){
   el.classList.add('active');
   document.getElementById('tab-chat').classList.toggle('hidden',tab!=='chat');
   document.getElementById('tab-carta').classList.toggle('hidden',tab!=='carta');
+  document.getElementById('tab-cuenta').classList.toggle('hidden',tab!=='cuenta');
+  if(tab==='cuenta')cargarCuenta();
 }
 
 function addItem(id,precio,nombre){
@@ -319,6 +340,51 @@ async function sendMsg(){
   isTyping=false;
 }
 function sendSug(el){document.getElementById('chat-input').value=el.textContent;sendMsg();}
+
+async function cargarCuenta(){
+  document.getElementById('cuenta-mesa').textContent='Mesa '+mesaNum;
+  try{
+    const{data:pedidos}=await sb.from('pedidos').select('*,pedido_items(*)').eq('mesa_id',mesaNum).eq('estado','pendiente').order('created_at',{ascending:false});
+    if(!pedidos||!pedidos.length){
+      document.getElementById('cuenta-items').innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">No hay pedidos pendientes</div>';
+      document.getElementById('cuenta-total').textContent='0.00€';
+      return;
+    }
+    let allItems=[];
+    pedidos.forEach(p=>(p.pedido_items||[]).forEach(i=>allItems.push(i)));
+    const total=allItems.reduce((s,i)=>s+(i.precio_unidad||0)*i.cantidad,0);
+    document.getElementById('cuenta-items').innerHTML=allItems.map(i=>`
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #f5f4f0;font-size:14px;">
+        <span>${i.cantidad}x ${i.nombre_plato}</span>
+        <span style="color:#c9973a;font-weight:500;">${((i.precio_unidad||0)*i.cantidad).toFixed(2)}€</span>
+      </div>
+    `).join('');
+    document.getElementById('cuenta-total').textContent=total.toFixed(2)+'€';
+    document.getElementById('btn-pagar').dataset.total=total;
+  }catch(e){console.error(e);}
+}
+
+async function pagarCuenta(){
+  const btn=document.getElementById('btn-pagar');
+  const total=parseFloat(btn.dataset.total||0);
+  if(!total){alert('No hay nada que pagar todavía.');return;}
+  btn.textContent='Procesando...';
+  btn.disabled=true;
+  try{
+    const resp=await fetch('/.netlify/functions/create-payment',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({amount:total,mesa:mesaNum})
+    });
+    const data=await resp.json();
+    if(data.url){window.location.href=data.url;}
+    else{alert('Error al procesar el pago.');btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';btn.disabled=false;}
+  }catch(e){
+    alert('Error de conexión.');
+    btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';
+    btn.disabled=false;
+  }
+}
 </script>
 </body>
 </html>
