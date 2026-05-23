@@ -12,37 +12,37 @@ exports.handler = async (event) => {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
+    console.log('Webhook Error:', err.message);
     return { statusCode: 400, body: `Webhook Error: ${err.message}` };
   }
 
   if (stripeEvent.type === 'checkout.session.completed') {
     const session = stripeEvent.data.object;
     const email = session.customer_details?.email;
-    const plan = session.metadata?.plan || 'pro';
+
+    console.log('Payment received for:', email);
 
     if (!email) {
       return { statusCode: 400, body: 'No email found' };
     }
 
     const sb = createClient(
-      process.env.SUPABASE_URL,
+      'https://kuntstakrkvqzncjxpjp.supabase.co',
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+    const tempPassword = Math.random().toString(36).slice(-6) + 'Aa1!';
 
-    const { error } = await sb.auth.admin.createUser({
+    const { error: userError } = await sb.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true
     });
 
-    if (error && !error.message.includes('already registered')) {
-      console.error('Error creating user:', error);
-      return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    if (userError && !userError.message.includes('already registered')) {
+      console.log('User creation error:', userError.message);
     }
 
-    // Enviar email de bienvenida via Resend
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -55,11 +55,11 @@ exports.handler = async (event) => {
         subject: '¡Bienvenido a Tapify! Tus credenciales de acceso',
         html: `
           <h2>¡Bienvenido a Tapify!</h2>
-          <p>Tu cuenta ha sido creada correctamente. Aquí tienes tus credenciales:</p>
+          <p>Tu cuenta ha sido creada. Aquí tienes tus credenciales:</p>
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Contraseña temporal:</strong> ${tempPassword}</p>
           <p><a href="https://tapify-admin.netlify.app" style="background:#c9973a;color:#0f0f14;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin:16px 0;">Entrar al panel</a></p>
-          <p>Te recomendamos cambiar tu contraseña una vez dentro.</p>
+          <p>Cambia tu contraseña una vez dentro.</p>
           <p>El equipo de Tapify</p>
         `
       })
