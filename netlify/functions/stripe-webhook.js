@@ -21,27 +21,34 @@ exports.handler = async (event) => {
     const email = session.customer_details?.email;
 
     console.log('Payment received for:', email);
-
-    if (!email) {
-      return { statusCode: 400, body: 'No email found' };
-    }
+    if (!email) return { statusCode: 400, body: 'No email found' };
 
     const sb = createClient(
       'https://kuntstakrkvqzncjxpjp.supabase.co',
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    const tempPassword = Math.random().toString(36).slice(-6) + 'Aa1!';
-
-    const { error: userError } = await sb.auth.admin.createUser({
+    // Crear usuario si no existe
+    await sb.auth.admin.createUser({
       email,
-      password: tempPassword,
       email_confirm: true
     });
 
-    if (userError && !userError.message.includes('already registered')) {
-      console.log('User creation error:', userError.message);
+    // Enviar magic link
+    const { data, error } = await sb.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: {
+        redirectTo: 'https://tapify-admin.netlify.app'
+      }
+    });
+
+    if (error) {
+      console.log('Magic link error:', error.message);
+      return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
+
+    const magicLink = data?.properties?.action_link;
 
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -52,15 +59,15 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         from: 'Tapify <onboarding@resend.dev>',
         to: email,
-        subject: '¡Bienvenido a Tapify! Tus credenciales de acceso',
+        subject: '¡Bienvenido a Tapify! Accede a tu panel',
         html: `
-          <h2>¡Bienvenido a Tapify!</h2>
-          <p>Tu cuenta ha sido creada. Aquí tienes tus credenciales:</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Contraseña temporal:</strong> ${tempPassword}</p>
-          <p><a href="https://tapify-admin.netlify.app" style="background:#c9973a;color:#0f0f14;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin:16px 0;">Entrar al panel</a></p>
-          <p>Cambia tu contraseña una vez dentro.</p>
-          <p>El equipo de Tapify</p>
+          <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:2rem;">
+            <h2 style="color:#0f0f14;">¡Bienvenido a Tapify!</h2>
+            <p style="color:#555;">Tu pago ha sido procesado correctamente. Pulsa el botón para acceder a tu panel de administración.</p>
+            <a href="${magicLink}" style="background:#c9973a;color:#0f0f14;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;margin:20px 0;">Entrar a mi panel →</a>
+            <p style="color:#aaa;font-size:12px;">Este enlace es válido durante 24 horas. Si no solicitaste esto ignora este email.</p>
+            <p style="color:#555;">El equipo de Tapify</p>
+          </div>
         `
       })
     });
