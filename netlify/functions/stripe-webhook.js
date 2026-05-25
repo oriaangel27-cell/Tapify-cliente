@@ -39,7 +39,7 @@ exports.handler = async (event) => {
       type: 'magiclink',
       email,
       options: {
-        redirectTo: 'https://tapify-admin.netlify.app'
+        redirectTo: 'https://admin.tapi-fy.online'
       }
     });
 
