@@ -28,13 +28,11 @@ exports.handler = async (event) => {
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    // Crear usuario si no existe
     await sb.auth.admin.createUser({
       email,
       email_confirm: true
     });
 
-    // Enviar magic link
     const { data, error } = await sb.auth.admin.generateLink({
       type: 'magiclink',
       email,
@@ -65,8 +63,11 @@ exports.handler = async (event) => {
             <h2 style="color:#0f0f14;">¡Bienvenido a Tapify!</h2>
             <p style="color:#555;">Tu pago ha sido procesado correctamente. Pulsa el botón para acceder a tu panel de administración.</p>
             <a href="${magicLink}" style="background:#c9973a;color:#0f0f14;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;margin:20px 0;">Entrar a mi panel →</a>
-            <p style="color:#aaa;font-size:12px;">Este enlace es válido durante 24 horas. Si no solicitaste esto ignora este email.</p>
-            <p style="color:#555;">El equipo de Tapify</p>
+            <p style="color:#555;margin-top:20px;">Para acceder en el futuro ve directamente a:</p>
+            <a href="https://admin.tapi-fy.online" style="color:#c9973a;font-weight:600;font-size:16px;">admin.tapi-fy.online</a>
+            <p style="color:#aaa;font-size:12px;margin-top:8px;">Guarda este enlace en tus favoritos.</p>
+            <p style="color:#aaa;font-size:12px;">Este enlace de acceso es válido durante 24 horas.</p>
+            <p style="color:#555;margin-top:16px;">El equipo de Tapify</p>
           </div>
         `
       })
