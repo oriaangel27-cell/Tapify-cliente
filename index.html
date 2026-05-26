@@ -344,7 +344,8 @@ function sendSug(el){document.getElementById('chat-input').value=el.textContent;
 async function cargarCuenta(){
   document.getElementById('cuenta-mesa').textContent='Mesa '+mesaNum;
   try{
-    const{data:pedidos}=await sb.from('pedidos').select('*,pedido_items(*)').eq('mesa_id',mesaNum).eq('estado','pendiente').order('created_at',{ascending:false});
+    const seisHorasAtras=new Date(Date.now()-6*60*60*1000).toISOString();
+    const{data:pedidos}=await sb.from('pedidos').select('*,pedido_items(*)').eq('mesa_id',mesaNum).eq('estado','pendiente').gte('created_at',seisHorasAtras).order('created_at',{ascending:false});
     if(!pedidos||!pedidos.length){
       document.getElementById('cuenta-items').innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">No hay pedidos pendientes</div>';
       document.getElementById('cuenta-total').textContent='0.00€';
