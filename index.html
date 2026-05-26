@@ -116,54 +116,7 @@
   </div>
 
   <div id="tab-carta" class="carta-wrap hidden">
-    <div class="cat-header"><span class="cat-label">Entrantes</span><div class="cat-line"></div></div>
-    <div class="plato" id="plato-1">
-      <img class="plato-img" src="https://images.unsplash.com/photo-1541014741259-de529411b96a?w=600&q=80" alt="Croquetas" onerror="this.style.display='none'"/>
-      <div class="plato-body">
-        <div class="plato-top"><span class="plato-nombre">Croquetas de jamón</span><span class="plato-precio">8.50€</span></div>
-        <div class="plato-desc">Caseras, masa cremosa, jamón ibérico de bellota</div>
-        <div class="alergenos"><span class="alergeno">Gluten</span><span class="alergeno">Lácteos</span></div>
-        <div class="plato-footer" id="footer-1"><button class="add-btn" onclick="addItem(1,8.50,'Croquetas de jamón')"><i class="ti ti-plus"></i>Añadir</button></div>
-      </div>
-    </div>
-    <div class="plato" id="plato-2">
-      <img class="plato-img" src="https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=600&q=80" alt="Salmorejo" onerror="this.style.display='none'"/>
-      <div class="plato-body">
-        <div class="plato-top"><span class="plato-nombre">Salmorejo cordobés</span><span class="plato-precio">6.00€</span></div>
-        <div class="plato-desc">Con huevo duro picado y virutas de jamón ibérico</div>
-        <div class="alergenos"><span class="alergeno">Gluten</span><span class="alergeno">Huevo</span></div>
-        <div class="plato-footer" id="footer-2"><button class="add-btn" onclick="addItem(2,6.00,'Salmorejo cordobés')"><i class="ti ti-plus"></i>Añadir</button></div>
-      </div>
-    </div>
-    <div class="cat-header"><span class="cat-label">Principales</span><div class="cat-line"></div></div>
-    <div class="plato" id="plato-3">
-      <img class="plato-img" src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80" alt="Carrillada" onerror="this.style.display='none'"/>
-      <div class="plato-body">
-        <div class="plato-top"><span class="plato-nombre">Carrillada ibérica</span><span class="plato-precio">16.50€</span></div>
-        <div class="plato-desc">Guisada al vino tinto Pedro Ximénez, puré de patata trufado</div>
-        <div class="alergenos"></div>
-        <div class="plato-footer" id="footer-3"><button class="add-btn" onclick="addItem(3,16.50,'Carrillada ibérica')"><i class="ti ti-plus"></i>Añadir</button></div>
-      </div>
-    </div>
-    <div class="plato" id="plato-4">
-      <img class="plato-img" src="https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&q=80" alt="Pez espada" onerror="this.style.display='none'"/>
-      <div class="plato-body">
-        <div class="plato-top"><span class="plato-nombre">Pez espada a la plancha</span><span class="plato-precio">14.00€</span></div>
-        <div class="plato-desc">Con ajillo y guarnición de verduras de temporada</div>
-        <div class="alergenos"><span class="alergeno">Pescado</span></div>
-        <div class="plato-footer" id="footer-4"><button class="add-btn" onclick="addItem(4,14.00,'Pez espada a la plancha')"><i class="ti ti-plus"></i>Añadir</button></div>
-      </div>
-    </div>
-    <div class="cat-header"><span class="cat-label">Postres</span><div class="cat-line"></div></div>
-    <div class="plato" id="plato-5">
-      <img class="plato-img" src="https://images.unsplash.com/photo-1551024506-0bccd828d307?w=600&q=80" alt="Torrija" onerror="this.style.display='none'"/>
-      <div class="plato-body">
-        <div class="plato-top"><span class="plato-nombre">Torrija caramelizada</span><span class="plato-precio">5.50€</span></div>
-        <div class="plato-desc">Con helado artesano de vainilla de Madagascar</div>
-        <div class="alergenos"><span class="alergeno">Gluten</span><span class="alergeno">Lácteos</span><span class="alergeno">Huevo</span></div>
-        <div class="plato-footer" id="footer-5"><button class="add-btn" onclick="addItem(5,5.50,'Torrija caramelizada')"><i class="ti ti-plus"></i>Añadir</button></div>
-      </div>
-    </div>
+    <div id="carta-container"><div style="text-align:center;padding:3rem;color:#aaa;">Cargando carta...</div></div>
   </div>
 
   <div id="tab-cuenta" class="carta-wrap hidden" style="padding:1.5rem;">
@@ -202,15 +155,62 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const params=new URLSearchParams(window.location.search);
 const mesaNum=params.get('mesa')||'1';
+const restauranteId=params.get('restaurante')||'b5049d74-e1dc-4511-b97c-4e6804327593';
 document.getElementById('mesa-label').textContent='Mesa '+mesaNum;
-const menu=[
-  {id:1,nombre:'Croquetas de jamón',precio:8.50,alergenos:['gluten','lácteos']},
-  {id:2,nombre:'Salmorejo cordobés',precio:6.00,alergenos:['gluten','huevo']},
-  {id:3,nombre:'Carrillada ibérica',precio:16.50,alergenos:[]},
-  {id:4,nombre:'Pez espada a la plancha',precio:14.00,alergenos:['pescado']},
-  {id:5,nombre:'Torrija caramelizada',precio:5.50,alergenos:['gluten','lácteos','huevo']}
-];
+
+let menu=[];
 let pedido={},chatHistory=[],isTyping=false;
+
+async function cargarCarta(){
+  try{
+    // Cargar datos del restaurante
+    const{data:rest}=await sb.from('restaurantes').select('*').eq('id',restauranteId).single();
+    if(rest){
+      document.querySelector('.brand-name').textContent=rest.nombre||'Restaurante';
+      document.querySelector('.brand-sub').textContent=rest.eslogan||'';
+    }
+
+    // Cargar platos
+    const{data:platos}=await sb.from('platos').select('*').eq('restaurante_id',restauranteId).eq('disponible',true).order('categoria').order('created_at');
+    if(!platos||!platos.length){
+      document.getElementById('carta-container').innerHTML='<div style="text-align:center;padding:3rem;color:#aaa;">La carta está vacía</div>';
+      return;
+    }
+
+    menu=platos.map(p=>({id:p.id,nombre:p.nombre,precio:parseFloat(p.precio),alergenos:[]}));
+
+    // Agrupar por categoría
+    const cats={};
+    platos.forEach(p=>{
+      if(!cats[p.categoria])cats[p.categoria]=[];
+      cats[p.categoria].push(p);
+    });
+
+    const html=Object.entries(cats).map(([cat,items])=>`
+      <div class="cat-header"><span class="cat-label">${cat}</span><div class="cat-line"></div></div>
+      ${items.map(p=>`
+        <div class="plato" id="plato-${p.id}">
+          ${p.imagen_url?`<img class="plato-img" src="${p.imagen_url}" alt="${p.nombre}" onerror="this.style.display='none'"/>`:''}
+          <div class="plato-body">
+            <div class="plato-top"><span class="plato-nombre">${p.nombre}</span><span class="plato-precio">${parseFloat(p.precio).toFixed(2)}€</span></div>
+            <div class="plato-desc">${p.descripcion||''}</div>
+            <div class="plato-footer" id="footer-${p.id}">
+              <button class="add-btn" onclick="addItem('${p.id}',${p.precio},'${p.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    `).join('');
+
+    document.getElementById('carta-container').innerHTML=html+'<div style="height:120px;"></div>';
+  }catch(e){
+    console.error(e);
+    document.getElementById('carta-container').innerHTML='<div style="text-align:center;padding:3rem;color:#aaa;">Error al cargar la carta</div>';
+  }
+}
+
+// Cargar carta al inicio
+cargarCarta();
 
 function switchTab(tab,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -235,8 +235,10 @@ function rmItem(id){
   pedido[id].qty--;
   if(pedido[id].qty<=0){
     delete pedido[id];
-    const pl=menu.find(p=>p.id===id);
-    document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem(${id},${pl.precio},'${pl.nombre}')"><i class="ti ti-plus"></i>Añadir</button>`;
+    document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem('${id}',${pedido[id]?.precio||0},'${pedido[id]?.nombre||''}')"><i class="ti ti-plus"></i>Añadir</button>`;
+    // Recargar carta para restaurar el botón
+    const pl=menu.find(p=>p.id==id);
+    if(pl)document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;
   }else{document.getElementById('qty-'+id).textContent=pedido[id].qty;}
   updateBar();
 }
@@ -272,7 +274,7 @@ function addConfirmBtns(){
 async function confirmar(){
   document.getElementById('confirm-row')?.remove();showTyping();
   try{
-    const{data:p,error}=await sb.from('pedidos').insert({mesa_id:mesaNum,estado:'pendiente'}).select().single();
+    const{data:p,error}=await sb.from('pedidos').insert({mesa_id:mesaNum,estado:'pendiente',restaurante_id:restauranteId}).select().single();
     if(error)throw error;
     await sb.from('pedido_items').insert(Object.values(pedido).map(i=>({pedido_id:p.id,plato_id:i.id,cantidad:i.qty,nombre_plato:i.nombre,precio_unidad:i.precio})));
     removeTyping();
