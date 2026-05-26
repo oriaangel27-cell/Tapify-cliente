@@ -28,11 +28,25 @@ exports.handler = async (event) => {
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    await sb.auth.admin.createUser({
+    // Crear usuario
+    const { data: userData } = await sb.auth.admin.createUser({
       email,
       email_confirm: true
     });
 
+    const userId = userData?.user?.id;
+
+    // Crear restaurante para este usuario
+    if (userId) {
+      await sb.from('restaurantes').insert({
+        user_id: userId,
+        nombre: 'Mi Restaurante',
+        eslogan: 'Bienvenidos',
+        plan: 'pro'
+      });
+    }
+
+    // Generar magic link
     const { data, error } = await sb.auth.admin.generateLink({
       type: 'magiclink',
       email,
