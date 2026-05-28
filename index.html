@@ -161,16 +161,21 @@ document.getElementById('mesa-label').textContent='Mesa '+mesaNum;
 let menu=[];
 let pedido={},chatHistory=[],isTyping=false;
 
+// FIX: Función para escapar HTML y prevenir XSS
+function esc(str){
+  const d=document.createElement('div');
+  d.textContent=str||'';
+  return d.innerHTML;
+}
+
 async function cargarCarta(){
   try{
-    // Cargar datos del restaurante
     const{data:rest}=await sb.from('restaurantes').select('*').eq('id',restauranteId).single();
     if(rest){
       document.querySelector('.brand-name').textContent=rest.nombre||'Restaurante';
       document.querySelector('.brand-sub').textContent=rest.eslogan||'';
     }
 
-    // Cargar platos
     const{data:platos}=await sb.from('platos').select('*').eq('restaurante_id',restauranteId).eq('disponible',true).order('categoria').order('created_at');
     if(!platos||!platos.length){
       document.getElementById('carta-container').innerHTML='<div style="text-align:center;padding:3rem;color:#aaa;">La carta está vacía</div>';
@@ -179,7 +184,6 @@ async function cargarCarta(){
 
     menu=platos.map(p=>({id:p.id,nombre:p.nombre,precio:parseFloat(p.precio),alergenos:[]}));
 
-    // Agrupar por categoría
     const cats={};
     platos.forEach(p=>{
       if(!cats[p.categoria])cats[p.categoria]=[];
@@ -187,13 +191,13 @@ async function cargarCarta(){
     });
 
     const html=Object.entries(cats).map(([cat,items])=>`
-      <div class="cat-header"><span class="cat-label">${cat}</span><div class="cat-line"></div></div>
+      <div class="cat-header"><span class="cat-label">${esc(cat)}</span><div class="cat-line"></div></div>
       ${items.map(p=>`
         <div class="plato" id="plato-${p.id}">
-          ${p.imagen_url?`<img class="plato-img" src="${p.imagen_url}" alt="${p.nombre}" onerror="this.style.display='none'"/>`:''}
+          ${p.imagen_url?`<img class="plato-img" src="${esc(p.imagen_url)}" alt="${esc(p.nombre)}" onerror="this.style.display='none'"/>`:''}
           <div class="plato-body">
-            <div class="plato-top"><span class="plato-nombre">${p.nombre}</span><span class="plato-precio">${parseFloat(p.precio).toFixed(2)}€</span></div>
-            <div class="plato-desc">${p.descripcion||''}</div>
+            <div class="plato-top"><span class="plato-nombre">${esc(p.nombre)}</span><span class="plato-precio">${parseFloat(p.precio).toFixed(2)}€</span></div>
+            <div class="plato-desc">${esc(p.descripcion||'')}</div>
             <div class="plato-footer" id="footer-${p.id}">
               <button class="add-btn" onclick="addItem('${p.id}',${p.precio},'${p.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>
             </div>
@@ -209,7 +213,6 @@ async function cargarCarta(){
   }
 }
 
-// Cargar carta al inicio
 cargarCarta();
 
 function switchTab(tab,el){
@@ -230,16 +233,19 @@ function addItem(id,precio,nombre){
   }else{document.getElementById('qty-'+id).textContent=pedido[id].qty;}
 }
 
+// FIX: rmItem ya no crashea al eliminar el último ítem
 function rmItem(id){
   if(!pedido[id])return;
   pedido[id].qty--;
   if(pedido[id].qty<=0){
+    const pl=menu.find(p=>p.id==id); // guardar referencia ANTES de delete
     delete pedido[id];
-    document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem('${id}',${pedido[id]?.precio||0},'${pedido[id]?.nombre||''}')"><i class="ti ti-plus"></i>Añadir</button>`;
-    // Recargar carta para restaurar el botón
-    const pl=menu.find(p=>p.id==id);
-    if(pl)document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;
-  }else{document.getElementById('qty-'+id).textContent=pedido[id].qty;}
+    if(pl){
+      document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;
+    }
+  }else{
+    document.getElementById('qty-'+id).textContent=pedido[id].qty;
+  }
   updateBar();
 }
 
@@ -283,7 +289,7 @@ async function confirmar(){
     pedido={};updateBar();
     menu.forEach(pl=>{
       const f=document.getElementById('footer-'+pl.id);
-      if(f)f.innerHTML=`<button class="add-btn" onclick="addItem(${pl.id},${pl.precio},'${pl.nombre}')"><i class="ti ti-plus"></i>Añadir</button>`;
+      if(f)f.innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;
     });
   }catch(e){removeTyping();addBotMsg('Hubo un problema. Avisa al personal.');console.error(e);}
 }
@@ -297,7 +303,7 @@ function cancelar(){
 function addUserMsg(text){
   const msgs=document.getElementById('chat-messages');
   const d=document.createElement('div');d.className='msg-row user';
-  d.innerHTML=`<div class="msg-bubble user">${text}</div>`;
+  d.innerHTML=`<div class="msg-bubble user">${esc(text)}</div>`;
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
   document.getElementById('suggestions').style.display='none';
 }
@@ -343,11 +349,17 @@ async function sendMsg(){
 }
 function sendSug(el){document.getElementById('chat-input').value=el.textContent;sendMsg();}
 
+// FIX: cargarCuenta filtra por restaurante_id + XSS en nombres de platos
 async function cargarCuenta(){
   document.getElementById('cuenta-mesa').textContent='Mesa '+mesaNum;
   try{
     const seisHorasAtras=new Date(Date.now()-6*60*60*1000).toISOString();
-    const{data:pedidos}=await sb.from('pedidos').select('*,pedido_items(*)').eq('mesa_id',mesaNum).eq('estado','pendiente').gte('created_at',seisHorasAtras).order('created_at',{ascending:false});
+    const{data:pedidos}=await sb.from('pedidos').select('*,pedido_items(*)')
+      .eq('mesa_id',mesaNum)
+      .eq('restaurante_id',restauranteId)
+      .eq('estado','pendiente')
+      .gte('created_at',seisHorasAtras)
+      .order('created_at',{ascending:false});
     if(!pedidos||!pedidos.length){
       document.getElementById('cuenta-items').innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">No hay pedidos pendientes</div>';
       document.getElementById('cuenta-total').textContent='0.00€';
@@ -358,7 +370,7 @@ async function cargarCuenta(){
     const total=allItems.reduce((s,i)=>s+(i.precio_unidad||0)*i.cantidad,0);
     document.getElementById('cuenta-items').innerHTML=allItems.map(i=>`
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #f5f4f0;font-size:14px;">
-        <span>${i.cantidad}x ${i.nombre_plato}</span>
+        <span>${esc(String(i.cantidad))}x ${esc(i.nombre_plato)}</span>
         <span style="color:#c9973a;font-weight:500;">${((i.precio_unidad||0)*i.cantidad).toFixed(2)}€</span>
       </div>
     `).join('');
