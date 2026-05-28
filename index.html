@@ -50,14 +50,11 @@
     .plato{background:white;margin:0 1rem 12px;border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,0.06);transition:transform 0.2s;}
     .plato:hover{transform:translateY(-2px);}
     .plato-img{width:100%;height:160px;object-fit:cover;display:block;}
-    .plato-img-placeholder{width:100%;height:160px;background:linear-gradient(135deg,#f0ede6,#e8e3d8);display:flex;align-items:center;justify-content:center;color:#ccc;font-size:36px;}
     .plato-body{padding:14px 16px;}
     .plato-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
     .plato-nombre{font-size:16px;font-weight:500;color:var(--dark);}
     .plato-precio{font-family:'Playfair Display',serif;font-size:17px;color:var(--accent);white-space:nowrap;margin-left:8px;}
     .plato-desc{font-size:13px;color:var(--muted);line-height:1.45;margin-bottom:10px;}
-    .alergenos{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;}
-    .alergeno{background:#fef3e2;color:#b45309;font-size:11px;padding:2px 8px;border-radius:10px;}
     .plato-footer{display:flex;align-items:center;justify-content:flex-end;}
     .add-btn{background:var(--dark);color:white;border:none;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;}
     .qty-ctrl{display:flex;align-items:center;gap:12px;}
@@ -95,7 +92,6 @@
       <button class="tab" onclick="switchTab('cuenta',this)"><i class="ti ti-credit-card" style="margin-right:5px;font-size:13px;"></i>Cuenta</button>
     </div>
   </div>
-
   <div id="tab-chat" class="chat-wrap">
     <div class="chat-messages" id="chat-messages">
       <div class="msg-row">
@@ -114,11 +110,9 @@
       <button class="send-btn" onclick="sendMsg()"><i class="ti ti-send"></i></button>
     </div>
   </div>
-
   <div id="tab-carta" class="carta-wrap hidden">
     <div id="carta-container"><div style="text-align:center;padding:3rem;color:#aaa;">Cargando carta...</div></div>
   </div>
-
   <div id="tab-cuenta" class="carta-wrap hidden" style="padding:1.5rem;">
     <div style="text-align:center;margin-bottom:1.5rem;">
       <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600;color:#0f0f14;margin-bottom:6px;">Tu cuenta</div>
@@ -136,7 +130,6 @@
     </button>
     <p style="text-align:center;font-size:12px;color:#aaa;margin-top:10px;">Pago seguro procesado por Stripe</p>
   </div>
-
   <div id="pedido-bar" class="pedido-bar hidden">
     <div class="pedido-inner" onclick="verPedido()">
       <div class="pedido-left">
@@ -147,49 +140,28 @@
     </div>
   </div>
 </div>
-
 <script>
 const SUPABASE_URL='https://kuntstakrkvqzncjxpjp.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1bnRzdGFrcmt2cXpuY2p4cGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjUxNjksImV4cCI6MjA5NDM0MTE2OX0.eJieyKZSFEvPoTMGQOXrofAjXgCmcRrv_SqhKGBKhgg';
-
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const params=new URLSearchParams(window.location.search);
 const mesaNum=params.get('mesa')||'1';
 const restauranteId=params.get('restaurante')||'b5049d74-e1dc-4511-b97c-4e6804327593';
 document.getElementById('mesa-label').textContent='Mesa '+mesaNum;
-
 let menu=[];
 let pedido={},chatHistory=[],isTyping=false;
 
-// FIX: Función para escapar HTML y prevenir XSS
-function esc(str){
-  const d=document.createElement('div');
-  d.textContent=str||'';
-  return d.innerHTML;
-}
+function esc(str){const d=document.createElement('div');d.textContent=str||'';return d.innerHTML;}
 
 async function cargarCarta(){
   try{
     const{data:rest}=await sb.from('restaurantes').select('*').eq('id',restauranteId).single();
-    if(rest){
-      document.querySelector('.brand-name').textContent=rest.nombre||'Restaurante';
-      document.querySelector('.brand-sub').textContent=rest.eslogan||'';
-    }
-
+    if(rest){document.querySelector('.brand-name').textContent=rest.nombre||'Restaurante';document.querySelector('.brand-sub').textContent=rest.eslogan||'';}
     const{data:platos}=await sb.from('platos').select('*').eq('restaurante_id',restauranteId).eq('disponible',true).order('categoria').order('created_at');
-    if(!platos||!platos.length){
-      document.getElementById('carta-container').innerHTML='<div style="text-align:center;padding:3rem;color:#aaa;">La carta está vacía</div>';
-      return;
-    }
-
+    if(!platos||!platos.length){document.getElementById('carta-container').innerHTML='<div style="text-align:center;padding:3rem;color:#aaa;">La carta está vacía</div>';return;}
     menu=platos.map(p=>({id:p.id,nombre:p.nombre,precio:parseFloat(p.precio),alergenos:[]}));
-
     const cats={};
-    platos.forEach(p=>{
-      if(!cats[p.categoria])cats[p.categoria]=[];
-      cats[p.categoria].push(p);
-    });
-
+    platos.forEach(p=>{if(!cats[p.categoria])cats[p.categoria]=[];cats[p.categoria].push(p);});
     const html=Object.entries(cats).map(([cat,items])=>`
       <div class="cat-header"><span class="cat-label">${esc(cat)}</span><div class="cat-line"></div></div>
       ${items.map(p=>`
@@ -205,14 +177,9 @@ async function cargarCarta(){
         </div>
       `).join('')}
     `).join('');
-
     document.getElementById('carta-container').innerHTML=html+'<div style="height:120px;"></div>';
-  }catch(e){
-    console.error(e);
-    document.getElementById('carta-container').innerHTML='<div style="text-align:center;padding:3rem;color:#aaa;">Error al cargar la carta</div>';
-  }
+  }catch(e){console.error(e);document.getElementById('carta-container').innerHTML='<div style="text-align:center;padding:3rem;color:#aaa;">Error al cargar la carta</div>';}
 }
-
 cargarCarta();
 
 function switchTab(tab,el){
@@ -233,19 +200,14 @@ function addItem(id,precio,nombre){
   }else{document.getElementById('qty-'+id).textContent=pedido[id].qty;}
 }
 
-// FIX: rmItem ya no crashea al eliminar el último ítem
 function rmItem(id){
   if(!pedido[id])return;
   pedido[id].qty--;
   if(pedido[id].qty<=0){
-    const pl=menu.find(p=>p.id==id); // guardar referencia ANTES de delete
+    const pl=menu.find(p=>p.id==id);
     delete pedido[id];
-    if(pl){
-      document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;
-    }
-  }else{
-    document.getElementById('qty-'+id).textContent=pedido[id].qty;
-  }
+    if(pl)document.getElementById('footer-'+id).innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;
+  }else{document.getElementById('qty-'+id).textContent=pedido[id].qty;}
   updateBar();
 }
 
@@ -287,10 +249,7 @@ async function confirmar(){
     addBotMsg('¡Pedido enviado a cocina! En breve te lo preparamos. ¡Buen provecho! 🍽️');
     toast('Pedido enviado a cocina ✓');
     pedido={};updateBar();
-    menu.forEach(pl=>{
-      const f=document.getElementById('footer-'+pl.id);
-      if(f)f.innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;
-    });
+    menu.forEach(pl=>{const f=document.getElementById('footer-'+pl.id);if(f)f.innerHTML=`<button class="add-btn" onclick="addItem('${pl.id}',${pl.precio},'${pl.nombre.replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Añadir</button>`;});
   }catch(e){removeTyping();addBotMsg('Hubo un problema. Avisa al personal.');console.error(e);}
 }
 
@@ -324,10 +283,7 @@ function showTyping(){
 }
 function removeTyping(){document.getElementById('typing')?.remove();}
 
-function toast(msg){
-  const t=document.createElement('div');t.className='toast';t.textContent=msg;
-  document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
-}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
 
 async function sendMsg(){
   const input=document.getElementById('chat-input');
@@ -336,11 +292,7 @@ async function sendMsg(){
   chatHistory.push({role:'user',content:text});
   isTyping=true;showTyping();
   try{
-    const resp=await fetch('/.netlify/functions/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:chatHistory,menu})
-    });
+    const resp=await fetch('/.netlify/functions/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:chatHistory,menu})});
     const data=await resp.json();removeTyping();
     const reply=data.reply||'¡Perdona! ¿Puedes repetirlo?';
     chatHistory.push({role:'assistant',content:reply});addBotMsg(reply);
@@ -349,7 +301,6 @@ async function sendMsg(){
 }
 function sendSug(el){document.getElementById('chat-input').value=el.textContent;sendMsg();}
 
-// FIX: cargarCuenta filtra por restaurante_id + XSS en nombres de platos
 async function cargarCuenta(){
   document.getElementById('cuenta-mesa').textContent='Mesa '+mesaNum;
   try{
@@ -383,22 +334,13 @@ async function pagarCuenta(){
   const btn=document.getElementById('btn-pagar');
   const total=parseFloat(btn.dataset.total||0);
   if(!total){alert('No hay nada que pagar todavía.');return;}
-  btn.textContent='Procesando...';
-  btn.disabled=true;
+  btn.textContent='Procesando...';btn.disabled=true;
   try{
-    const resp=await fetch('/.netlify/functions/create-payment',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({amount:total,mesa:mesaNum})
-    });
+    const resp=await fetch('/.netlify/functions/create-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mesa:mesaNum,restauranteId:restauranteId})});
     const data=await resp.json();
     if(data.url){window.location.href=data.url;}
     else{alert('Error al procesar el pago.');btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';btn.disabled=false;}
-  }catch(e){
-    alert('Error de conexión.');
-    btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';
-    btn.disabled=false;
-  }
+  }catch(e){alert('Error de conexión.');btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';btn.disabled=false;}
 }
 </script>
 </body>
