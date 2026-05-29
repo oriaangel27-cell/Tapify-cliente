@@ -171,6 +171,7 @@ if(params.get('pago')==='ok'){
 
 let menu=[];
 let pedido={},chatHistory=[],isTyping=false;
+let camareroNombre='Pepe'; // se sobreescribe con el valor de Supabase
 
 // FIX: Función para escapar HTML y prevenir XSS
 function esc(str){
@@ -185,6 +186,11 @@ async function cargarCarta(){
     if(rest){
       document.querySelector('.brand-name').textContent=rest.nombre||'Restaurante';
       document.querySelector('.brand-sub').textContent=rest.eslogan||'';
+      // FIX: nombre del camarero dinámico
+      if(rest.camarero_nombre){
+        camareroNombre=rest.camarero_nombre;
+        document.querySelector('.msg-bubble.bot').innerHTML=`¡Buenas! Soy ${esc(camareroNombre)}, tu camarero de hoy 👨‍🍳 Puedo recomendarte platos, decirte los alérgenos o tomarte el pedido. ¿Qué te apetece?`;
+      }
     }
 
     const{data:platos}=await sb.from('platos').select('*').eq('restaurante_id',restauranteId).eq('disponible',true).order('categoria').order('created_at');
@@ -225,6 +231,18 @@ async function cargarCarta(){
 }
 
 cargarCarta();
+
+// FIX: escuchar cuando cocina marca pedido como listo
+sb.channel('cliente-'+restauranteId+'-mesa-'+mesaNum)
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'pedidos'},payload=>{
+    if(payload.new.restaurante_id!==restauranteId)return;
+    if(String(payload.new.mesa_id)!==String(mesaNum))return;
+    if(payload.new.estado==='listo'){
+      toast('🍽️ ¡Tu pedido está listo!');
+      addBotMsg('¡Tu pedido ya está listo! En breve te lo llevamos a la mesa 😊');
+    }
+  })
+  .subscribe();
 
 function switchTab(tab,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -350,7 +368,7 @@ async function sendMsg(){
     const resp=await fetch('/.netlify/functions/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:chatHistory,menu})
+      body:JSON.stringify({messages:chatHistory,menu,camareroNombre})
     });
     const data=await resp.json();removeTyping();
     const reply=data.reply||'¡Perdona! ¿Puedes repetirlo?';
