@@ -4,6 +4,11 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>La Bodeguita</title>
+  <meta name="theme-color" content="#0f0f14"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23c9973a'/><text y='.9em' font-size='70' x='15'>🍽️</text></svg>"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -71,6 +76,13 @@
     .pedido-total{font-family:'Playfair Display',serif;font-size:18px;color:var(--accent);}
     .pedido-btn{background:var(--accent);color:white;border:none;border-radius:10px;padding:9px 20px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
     .hidden{display:none!important;}
+    .skeleton{background:linear-gradient(90deg,#f0ede6 25%,#e8e3d8 50%,#f0ede6 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;}
+    @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+    .skeleton-card{background:white;margin:0 1rem 12px;border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,0.06);}
+    .skeleton-img{height:160px;}
+    .skeleton-body{padding:14px 16px;}
+    .skeleton-line{height:14px;margin-bottom:8px;}
+    .skeleton-line.short{width:40%;}
     .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:white;padding:10px 22px;border-radius:20px;font-size:14px;font-weight:500;z-index:200;}
     .confirm-row{display:flex;gap:8px;padding:0 0 6px 44px;}
     .btn-si{background:var(--dark);color:white;border:none;border-radius:20px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
@@ -181,6 +193,17 @@ function esc(str){
 }
 
 async function cargarCarta(){
+  // Skeleton loading mientras carga
+  document.getElementById('carta-container').innerHTML=[1,2,3].map(()=>`
+    <div class="skeleton-card">
+      <div class="skeleton skeleton-img"></div>
+      <div class="skeleton-body">
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line short"></div>
+      </div>
+    </div>
+  `).join('');
   try{
     const{data:rest}=await sb.from('restaurantes').select('*').eq('id',restauranteId).single();
     if(rest){
@@ -255,6 +278,7 @@ function switchTab(tab,el){
 
 function addItem(id,precio,nombre){
   if(!pedido[id])pedido[id]={nombre,precio,qty:0};
+  if(pedido[id].qty>=20){toast('Máximo 20 unidades por plato');return;}
   pedido[id].qty++;updateBar();
   const f=document.getElementById('footer-'+id);
   if(!f.querySelector('.qty-ctrl')){
