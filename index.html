@@ -435,7 +435,7 @@ async function cargarCuenta(){
 async function pagarCuenta(){
   const btn=document.getElementById('btn-pagar');
   const total=parseFloat(btn.dataset.total||0);
-  if(!total){alert('No hay nada que pagar todavía.');return;}
+  if(!total){toast('No hay nada que pagar todavía.');return;}
   btn.textContent='Procesando...';
   btn.disabled=true;
   try{
@@ -446,9 +446,9 @@ async function pagarCuenta(){
     });
     const data=await resp.json();
     if(data.url){window.location.href=data.url;}
-    else{alert('Error al procesar el pago.');btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';btn.disabled=false;}
+    else{toast('Error al procesar el pago.');btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';btn.disabled=false;}
   }catch(e){
-    alert('Error de conexión.');
+    toast('Error de conexión.');
     btn.innerHTML='<i class="ti ti-credit-card"></i>Pagar con tarjeta';
     btn.disabled=false;
   }
